@@ -351,3 +351,115 @@ class CalculateFeeView(views.APIView):
                 {"error": "Invalid amount format."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class RevenueStatsView(views.APIView):
+    """
+    Returns total revenue from transaction fees
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Sum
+
+        # Calculate total revenue from completed transactions
+        total_revenue = Transaction.objects.filter(
+            status=Transaction.Status.COMPLETED
+        ).aggregate(total=Sum("fee"))["total"] or Decimal("0.00")
+
+        # Get transaction counts by status
+        total_transactions = Transaction.objects.count()
+        completed_count = Transaction.objects.filter(
+            status=Transaction.Status.COMPLETED
+        ).count()
+        pending_count = Transaction.objects.filter(
+            status=Transaction.Status.PENDING
+        ).count()
+        expired_count = Transaction.objects.filter(
+            status=Transaction.Status.EXPIRED
+        ).count()
+
+        return Response(
+            {
+                "total_revenue": float(total_revenue),
+                "currency": "DZD",
+                "statistics": {
+                    "total_transactions": total_transactions,
+                    "completed": completed_count,
+                    "pending": pending_count,
+                    "expired": expired_count,
+                },
+            }
+        )
+
+
+class DailyRevenueView(views.APIView):
+    """
+    Returns daily revenue data grouped by date
+   
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncDate
+        from datetime import datetime
+
+        # Backend only handles start_date and end_date parameters
+        # Frontend calculates what dates to request
+        start_date_str = request.query_params.get("start_date")
+        end_date_str = request.query_params.get("end_date")
+
+        if not start_date_str or not end_date_str:
+            return Response(
+                {
+                    "error": "start_date and end_date parameters required (YYYY-MM-DD format)"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+            start_date = timezone.make_aware(
+                datetime.combine(start_date, datetime.min.time())
+            )
+            end_date = timezone.make_aware(
+                datetime.combine(end_date, datetime.max.time())
+            )
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Query transactions grouped by date
+        daily_data = (
+            Transaction.objects.filter(
+                status=Transaction.Status.COMPLETED,
+                created_at__gte=start_date,
+                created_at__lte=end_date,
+            )
+            .annotate(date=TruncDate("created_at"))
+            .values("date")
+            .annotate(
+                total_revenue=Sum("fee"), transaction_count=Count("transaction_id")
+            )
+            .order_by("date")
+        )
+
+        # Return raw data - no formatting, no day names
+        results = []
+        for item in daily_data:
+            results.append(
+                {
+                    "date": item["date"].isoformat(),
+                    "revenue": float(item["total_revenue"] or 0),
+                    "transaction_count": item["transaction_count"],
+                }
+            )
+
+        return Response({"data": results})
+

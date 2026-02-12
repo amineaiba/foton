@@ -528,6 +528,70 @@ _Note: `national_id_number` is optional (from ID scan)._
 
 ---
 
+## Statistics & Revenue
+
+### Get Total Revenue
+
+**Endpoint:** `GET /transactions/revenue/`
+**Authentication:** Required (Bearer Token)
+
+**Response:**
+
+```json
+{
+  "total_revenue": 125000.0,
+  "currency": "DZD",
+  "statistics": {
+    "total_transactions": 450,
+    "completed": 380,
+    "pending": 50,
+    "expired": 20
+  }
+}
+```
+
+---
+
+### Get Daily Revenue Data
+
+**Endpoint:** `GET /transactions/revenue/daily/`
+**Authentication:** Required (Bearer Token)
+
+**Purpose:** Returns aggregated transaction data grouped by date. Frontend calculates date ranges and handles formatting.
+
+**Query Parameters (Required):**
+
+- `start_date`: Start date in YYYY-MM-DD format
+- `end_date`: End date in YYYY-MM-DD format
+
+**Example:** `GET /transactions/revenue/daily/?start_date=2025-11-24&end_date=2025-11-30`
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "date": "2025-11-24",
+      "revenue": 5000.0,
+      "transaction_count": 10
+    },
+    {
+      "date": "2025-11-25",
+      "revenue": 8000.0,
+      "transaction_count": 15
+    },
+    {
+      "date": "2025-11-26",
+      "revenue": 12000.0,
+      "transaction_count": 20
+    }
+  ]
+}
+```
+
+
+
 ### Transaction Expiry & Refunds
 
 **Concept:**
