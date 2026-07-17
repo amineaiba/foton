@@ -78,7 +78,10 @@ Base URL: `https://foton.onrender.com/api`
 | POST | `/transactions/receive/lookup/` | Look up a transaction to claim |
 | POST | `/transactions/receive/claim/` | Claim a transaction (or refund) |
 | GET | `/transactions/history/` | Agent's transaction history |
+| GET | `/transactions/detail/<transaction_id>/` | Get single transaction detail |
 | POST | `/transactions/lookup-user/` | Look up recipient before sending |
 | POST | `/transactions/expire-trigger/` | Manually run expiry cleanup job |
+| GET | `/transactions/revenue/` | Total revenue + transaction stats |
+| GET | `/transactions/revenue/daily/` | Revenue grouped by day (date range) |
 
 All endpoints except login/refresh/verify/password-reset require `Authorization: Bearer <access_token>`.
